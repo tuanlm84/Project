@@ -1,0 +1,43 @@
+/turnitin-portal/
+├── app/
+│   ├── Controllers/
+│   │   ├── AuthController.php          # Login Google SSO
+│   │   ├── HomeController.php          # Trang chủ
+│   │   ├── UploadController.php        # Nộp bài
+│   │   └── DownloadController.php      # Tải kết quả
+│   ├── Models/
+│   │   └── Job.php                     # ORM đơn giản: status, file, email, etc
+│   ├── Views/
+│   │   ├── layout.php
+│   │   ├── home.php
+│   │   ├── status.php
+│   │   └── login.php
+│   ├── Core/
+│   │   ├── Router.php                  # Điều hướng URL -> Controller
+│   │   ├── Controller.php              # Base class
+│   │   ├── View.php                    # Load giao diện
+│   │   └── Session.php                 # Xử lý session, auth
+│   ├── Services/
+│   │   ├── GoogleSSOService.php        # Login Google
+│   │   ├── QueueService.php            # Gửi job vào Redis
+│   │   └── JobService.php              # Lưu DB, cập nhật trạng thái
+│   └── Helpers/
+│       └── utils.php                   # Hàm tiện ích: format tên file, email
+├── public/
+│   ├── index.php                       # Entry point
+│   ├── uploads/                        # File người dùng nộp
+│   └── results/                        # Kết quả Turnitin (.pdf/.txt)
+├── scripts/
+│   ├── worker.py                       # Worker Python chính
+│   └── turnitin_client.py              # Gọi Turnitin API
+├── storage/
+│   └── logs/
+│       └── portal.log                  # Ghi log hệ thống, worker
+├── config/
+│   ├── config.php                      # Cấu hình chung
+│   ├── redis.php
+│   └── database.php
+├── .env                                # Biến môi trường
+├── .htaccess                           # Rewrite vào index.php
+├── composer.json
+└── README.md

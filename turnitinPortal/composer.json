@@ -1,0 +1,15 @@
+{
+  "name": "hcmute/turnitin-portal",
+  "description": "Turnitin Plagiarism Check Portal with PHP MVC + Redis + Python Worker",
+  "type": "project",
+  "require": {
+    "vlucas/phpdotenv": "^5.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  },
+  "minimum-stability": "stable",
+  "license": "MIT"
+}

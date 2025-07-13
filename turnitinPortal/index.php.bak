@@ -1,0 +1,33 @@
+<?php
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Tự động load class từ Composer
+require_once __DIR__ . '/../vendor/autoload.php';
+
+// Load biến môi trường
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/turnitinPortal/');
+$dotenv->load();
+
+// Bắt session
+session_start();
+
+// Tự động định tuyến
+use App\Core\Router;
+
+$router = new Router();
+
+// Định tuyến URL -> Controller@Method
+$router->get('/', 'HomeController@index');
+$router->get('/auth/login', 'AuthController@login');
+$router->get('/auth/callback', 'AuthController@callback');
+$router->get('/auth/logout', 'AuthController@logout');
+
+$router->post('/upload', 'UploadController@handle');
+$router->get('/download', 'DownloadController@serve');
+$router->get('/status', 'HomeController@status');
+
+// Xử lý route
+$router->dispatch();

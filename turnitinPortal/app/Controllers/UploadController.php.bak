@@ -1,0 +1,82 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Session;
+use App\Core\View;
+use App\Models\Job;
+use App\Services\QueueService;
+
+class UploadController extends Controller
+{
+    public function index()
+    {
+        $this->requireLogin();
+        //$this->view('upload', ['title' => 'Nộp bài']);
+        View::render('upload', ['title' => 'Nộp bài']);
+    }
+
+    public function submit()
+    {
+        $this->requireLogin();
+
+        if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            //error_log(print_r($_FILES, true));
+            $this->redirect('/upload?error=1');
+        }
+
+        $email = Session::get('user_email');
+        $originalName = $_FILES['file']['name'];
+        $tmpPath = $_FILES['file']['tmp_name'];
+
+        // 1. Làm sạch tên file
+        $cleanName = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $originalName);
+        $cleanName = substr($cleanName, 0, 100); // Giới hạn độ dài
+
+        $uploadDir = __DIR__ . '/../../uploads/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $finalPath = $uploadDir . $cleanName;
+
+        // 2. Nếu file đã tồn tại → xóa
+        if (file_exists($finalPath)) {
+            unlink($finalPath);
+        }
+
+        // 3. Xóa job cũ cùng user + file nếu có
+        $jobModel = new Job();
+        $existingJob = $jobModel->findByEmailAndFilename($email, $cleanName);
+        if ($existingJob) {
+            $jobModel->delete($existingJob['id']);
+
+            // Nếu có file result cũ thì xóa luôn
+            if (!empty($existingJob['result_file'])) {
+                $resultPath = $uploadDir . $existingJob['result_file'];
+                if (file_exists($resultPath)) {
+                    unlink($resultPath);
+                }
+            }
+        }
+
+        // 4. Lưu file
+        if (!move_uploaded_file($tmpPath, $finalPath)) {
+            $this->redirect('/upload?error=2');
+        }
+
+        // 5. Tạo job mới
+        $jobId = $jobModel->create($email, $cleanName);
+
+        // 6. Đưa vào queue để xử lý
+        $queue = new QueueService();
+        $queue->pushJob([
+            'job_id' => $jobId,
+            'filename' => $cleanName,
+            'email' => $email
+        ]);
+
+        $this->redirect('/status/' . $jobId);
+    }
+}

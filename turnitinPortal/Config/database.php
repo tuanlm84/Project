@@ -1,0 +1,59 @@
+<?php
+
+// Load .env nếu chưa load
+if (!isset($_ENV['DB_HOST'])) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+    $dotenv->load();
+}
+
+$host     = $_ENV['DB_HOST'];
+$port     = $_ENV['DB_PORT'];
+$dbname   = $_ENV['DB_NAME'];
+$username = $_ENV['DB_USER'];
+$password = $_ENV['DB_PASS'];
+
+try {
+    // Kết nối MySQL ban đầu (chưa chọn DB)
+    $pdo = new \PDO("mysql:host=$host;port=$port", $username, $password);
+    $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+    // Tạo database nếu chưa tồn tại
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+    $pdo->exec("USE `$dbname`");
+
+    // Tạo bảng users nếu chưa có
+    $pdo->exec("CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE,
+    password VARCHAR(255),
+    password_hash VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+
+    // Tạo bảng jobs nếu chưa có
+    $pdo->exec("CREATE TABLE IF NOT EXISTS jobs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_email VARCHAR(255),
+        filename VARCHAR(255),
+        status ENUM('waiting', 'processing', 'done', 'failed') DEFAULT 'waiting',
+        progress_percent TINYINT DEFAULT 0,
+        result_file VARCHAR(255),
+        similarity_score FLOAT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    // Thêm tài khoản admin mặc định nếu chưa tồn tại
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
+    $stmt->execute(['admin']);
+    if ($stmt->fetchColumn() == 0) {
+        $hashed = password_hash('admin', PASSWORD_BCRYPT);
+        $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)")->execute(['admin', $hashed]);    }
+
+    return $pdo;
+
+} catch (\PDOException $e) {
+    die("Lỗi kết nối CSDL: " . $e->getMessage());
+}
